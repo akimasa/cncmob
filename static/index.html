@@ -2,6 +2,10 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/backbone.js/1.3.3/backbone-min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.2/mqttws31.min.js"></script>
+<script src="settings.js"></script>
+<script src="encoding-indexes.js"></script>
+<script src="encoding.js"></script>
 <script type="text/html" id="ch-template">
 <div>
 	<%= (new Date(start)).toLocaleTimeString() %>
@@ -16,6 +20,55 @@
 </div>
 </script>
 <script>
+var client = new Paho.MQTT.Client(mqtt.wshost,mqtt.wsport,"clientId");
+var gMessage = new Uint8Array(0);
+var gGetAPICallback;
+client.onMessageArrived = function(message){
+    var dataview = new DataView(new ArrayBuffer(message.payloadBytes.byteLength));
+    for(var i=0;i<message.payloadBytes.byteLength;i++){
+	    dataview.setUint8(i,message.payloadBytes[i]);
+    }
+	    
+	//console.log(message.destinationName);
+	try{
+		var seq = dataview.getInt32(0,false);
+		console.log(seq);
+		if(seq == -1){
+			console.log(gMessage);
+			var td = new TextDecoder("utf-8");
+			var jstxt = td.decode(gMessage);
+			jstxt = jstxt.replace(/\0/g,"");
+			$("textarea").text(jstxt);
+			var j = JSON.parse(jstxt.trim())
+				gGetAPICallback(j);
+
+
+
+		} else if(seq === 0){
+			gMessage = new Uint8Array((seq+1) * (10240-4));
+			gMessage.set((new Uint8Array(dataview.buffer)).subarray(4));
+			console.log(gMessage,(new Uint8Array(dataview.buffer)).subarray(4));
+		} else if((seq+1) * (10240-4) > gMessage.byteLength){
+			var tmp = new Uint8Array((seq+1) * (10240-4));
+			tmp.set(gMessage,0);
+			tmp.set((new Uint8Array(dataview.buffer)).subarray(4),seq * (10240-4));
+			gMessage = tmp;
+		} else {
+			console.log("else",seq);
+			gMessage.set((new Uint8Array(dataview.buffer)).subarray(4),seq * (10240-4));
+		}
+		
+	} catch (e){
+		console.log(e);
+	}
+};
+client.connect({onSuccess: function(){
+	client.subscribe(mqtt.mqtttopic+"/res/#");
+	initGet();
+},
+userName : mqtt.mqttusername,
+password: mqtt.mqttpassword
+});
 var Router = Backbone.Router.extend({
 	routes: {
 		"programs/:id": "programs"
@@ -27,12 +80,10 @@ var Router = Backbone.Router.extend({
 var router = new Router();
 Backbone.history.start();
 var Schedules = Backbone.Collection.extend({
-	url: apipoint+"/schedule.json"
 });
-var schedules = new Schedules();
-schedules.fetch({
-	success: function(collection, res, opts){
-		console.log(res);
+function initGet(){
+getApi({method:"get",path:"schedule.json"},function(json){
+var schedules = new Schedules(json);
 		schedules.each(function(e,i){
 			console.log(e.get("programs"),i);
 			var MyView = Backbone.View.extend({
@@ -57,8 +108,15 @@ schedules.fetch({
 			var myView = new MyView();
 			$("body").append(myView.render().el);
 		});
-	}
-})
+});
+}
+function getApi(req,callback){
+	gGetAPICallback = callback;
+	var mess = new Paho.MQTT.Message(JSON.stringify(req));
+	mess.destinationName = mqtt.mqtttopic+"/req/session";
+	client.send(mess);
+}
 </script>
 <body>
+	<textarea></textarea>
 </body>
