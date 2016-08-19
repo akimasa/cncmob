@@ -104,23 +104,36 @@ var SchedulesView = Backbone.View.extend({
 					ev.preventDefault();
 				}));
 		var template = _.template($("#ch-template").html());
+		var lastStart = 0;
 		_.each(e.get("programs"),function(e2,i){
+			if(lastStart == 0 || ((new Date(lastStart)).getDate() != (new Date(e2.start)).getDate())){
+				console.log(e2.start);
+				that.$el.append($("<div>").text((new Date(e2.start)).toLocaleDateString()).addClass("date"));
+				lastStart = e2.start;
+			}
 			that.$el.append(template(e2));
-			//console.log(e,i);
 		});
 		return this;
 	}
 });function initGet(){
-getApi({method:"get",path:"schedule.json"},function(json){
-	schedules = new Schedules(json);
-	var schedules_tmp = new Schedules(json);
-	schedules_tmp.each(function(e,i){
-		console.log(e.get("programs"),i);
-		e.set({programs: e.get("programs").slice(0,10)});
-		var schedulesView = new SchedulesView({model:e});
-		$("body").append(schedulesView.render().el);
-});
-});
+	var cb = function(json){
+		$("body").html("");
+		sessionStorage.schedules = JSON.stringify(json);
+		schedules = new Schedules(json);
+		var schedules_tmp = new Schedules(json);
+		schedules_tmp.each(function(e,i){
+			console.log(e.get("programs"),i);
+			e.set({programs: e.get("programs").slice(0,10)});
+			var schedulesView = new SchedulesView({model:e});
+			$("body").append(schedulesView.render().el);
+		});
+	};
+	if(sessionStorage.schedules){
+		var json = JSON.parse(sessionStorage.schedules);
+		cb(json);
+		return;
+	}
+getApi({method:"get",path:"schedule.json"},cb);
 }
 function getApi(req,callback){
 	if(gGetAPIInuse){
@@ -128,7 +141,6 @@ function getApi(req,callback){
 	}
 	gGetAPICallback = true;
 	gGetAPICallback = callback;
-	$("body").html("");
 	var mess = new Paho.MQTT.Message(JSON.stringify(req));
 	var sessionid = Math.floor(Math.random*1000000);
 	mess.destinationName = mqtt.mqtttopic+"/req/"+sessionid;
@@ -148,6 +160,9 @@ function getApi(req,callback){
 .channel-name{
 	color:#00f;
 	text-decoration: underline;
+}
+.date{
+	border-bottom: solid 10px #aaa;
 }
 </style>
 <body>
