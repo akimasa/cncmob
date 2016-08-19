@@ -1,0 +1,6 @@
+{
+"mqttendpoint": "mqtt://EDITHERE:1883",
+"mqttusername": "akimasa@github",
+"mqttpassword": "",
+"mqtttopic": "akimasa@github"
+}

@@ -1,0 +1,8 @@
+var mqtt = {
+"wshost": "EDITHERE",
+"wsport": 80,
+"mqttusername": "akimasa@github",
+"mqttpassword": "",
+"mqtttopic": "akimasa@github"
+};
+
