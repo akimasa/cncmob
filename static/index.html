@@ -39,11 +39,10 @@ client.onMessageArrived = function(message){
 			var td = new TextDecoder("utf-8");
 			var jstxt = td.decode(gMessage);
 			jstxt = jstxt.replace(/\0/g,"");
-			$("textarea").text(jstxt);
-			var j = JSON.parse(jstxt.trim())
-				gGetAPIInuse = false;
-				$("#nowloading").hide();
-				gGetAPICallback(j);
+			var j = JSON.parse(jstxt);
+			gGetAPIInuse = false;
+			$("#nowloading").hide();
+			gGetAPICallback(j);
 
 
 
@@ -137,6 +136,5 @@ function getApi(req,callback){
 }
 </style>
 <body>
-	<textarea></textarea>
 	<div id="nowloading">now loading...</div>
 </body>
