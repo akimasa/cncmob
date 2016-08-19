@@ -23,6 +23,7 @@
 var client = new Paho.MQTT.Client(mqtt.wshost,mqtt.wsport,"clientId");
 var gMessage = new Uint8Array(0);
 var gGetAPICallback;
+var gGetAPIInuse = false;
 client.onMessageArrived = function(message){
     var dataview = new DataView(new ArrayBuffer(message.payloadBytes.byteLength));
     for(var i=0;i<message.payloadBytes.byteLength;i++){
@@ -40,6 +41,7 @@ client.onMessageArrived = function(message){
 			jstxt = jstxt.replace(/\0/g,"");
 			$("textarea").text(jstxt);
 			var j = JSON.parse(jstxt.trim())
+				gGetAPIInuse = false;
 				gGetAPICallback(j);
 
 
@@ -63,7 +65,7 @@ client.onMessageArrived = function(message){
 	}
 };
 client.connect({onSuccess: function(){
-	client.subscribe(mqtt.mqtttopic+"/res/#");
+	//client.subscribe(mqtt.mqtttopic+"/res/#");
 	initGet();
 },
 userName : mqtt.mqttusername,
@@ -111,9 +113,15 @@ var schedules = new Schedules(json);
 });
 }
 function getApi(req,callback){
+	if(gGetAPIInuse){
+		return;
+	}
+	gGetAPICallback = true;
 	gGetAPICallback = callback;
 	var mess = new Paho.MQTT.Message(JSON.stringify(req));
-	mess.destinationName = mqtt.mqtttopic+"/req/session";
+	var sessionid = Math.floor(Math.random*1000000);
+	mess.destinationName = mqtt.mqtttopic+"/req/"+sessionid;
+	client.subscribe(mqtt.mqtttopic+"/res/"+sessionid);
 	client.send(mess);
 }
 </script>
