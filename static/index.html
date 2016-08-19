@@ -24,6 +24,7 @@ var client = new Paho.MQTT.Client(mqtt.wshost,mqtt.wsport,"clientId");
 var gMessage = new Uint8Array(0);
 var gGetAPICallback;
 var gGetAPIInuse = false;
+
 client.onMessageArrived = function(message){
     var dataview = new DataView(new ArrayBuffer(message.payloadBytes.byteLength));
     for(var i=0;i<message.payloadBytes.byteLength;i++){
@@ -43,6 +44,7 @@ client.onMessageArrived = function(message){
 			gGetAPIInuse = false;
 			$("#nowloading").hide();
 			gGetAPICallback(j);
+			Backbone.history.start();
 
 
 
@@ -75,24 +77,27 @@ var Router = Backbone.Router.extend({
 	routes: {
 		"programs/:id": "programs"
 	},
-	programs: function(query, page){
-		console.log(query,page);
+	programs: function(id){
+		console.log(id);
+		if(schedules){
+		console.log(schedules.where({id:id}));
+		}
 	}
 });
 var router = new Router();
-Backbone.history.start();
 var Schedules = Backbone.Collection.extend({
 });
+var schedules;
 function initGet(){
 getApi({method:"get",path:"schedule.json"},function(json){
-var schedules = new Schedules(json);
+schedules = new Schedules(json);
 var SchedulesView = Backbone.View.extend({
 	render:function(){
 		var e = this.model;
 		var that = this;
 		this.$el.append($("<b>").text(e.get("name")).attr("id",e.get("id"))
 				.click(function(ev){
-					router.navigate("programs/"+e.get("id"));
+					router.navigate("programs/"+e.get("id"),true);
 					ev.preventDefault();
 				}));
 		var template = _.template($("#ch-template").html());
