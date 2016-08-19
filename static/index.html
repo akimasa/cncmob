@@ -86,29 +86,30 @@ var Schedules = Backbone.Collection.extend({
 function initGet(){
 getApi({method:"get",path:"schedule.json"},function(json){
 var schedules = new Schedules(json);
+var SchedulesView = Backbone.View.extend({
+	render:function(){
+		var e = this.model;
+		var that = this;
+		this.$el.append($("<b>").text(e.get("name")).attr("id",e.get("id"))
+				.click(function(ev){
+					router.navigate("programs/"+e.get("id"));
+					ev.preventDefault();
+				}));
+		var template = _.template($("#ch-template").html());
+		_.each(e.get("programs"),function(e2,i){
+			if(i > 10){
+				return;
+			}
+			that.$el.append(template(e2));
+			//console.log(e,i);
+		});
+		return this;
+	}
+});
 		schedules.each(function(e,i){
 			console.log(e.get("programs"),i);
-			var MyView = Backbone.View.extend({
-				render:function(){
-					this.$el.append($("<b>").text(e.get("name")).attr("id",e.get("id"))
-							.click(function(ev){
-						router.navigate("programs/"+e.get("id"));
-						ev.preventDefault();
-					}));
-					var that = this;
-					var template = _.template($("#ch-template").html());
-					_.each(e.get("programs"),function(e2,i){
-						if(i > 10){
-							return;
-						}
-						that.$el.append(template(e2));
-						//console.log(e,i);
-					});
-					return this;
-				}
-			});
-			var myView = new MyView();
-			$("body").append(myView.render().el);
+			var schedulesView = new SchedulesView({model:e});
+			$("body").append(schedulesView.render().el);
 		});
 });
 }
