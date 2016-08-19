@@ -44,7 +44,6 @@ client.onMessageArrived = function(message){
 			gGetAPIInuse = false;
 			$("#nowloading").hide();
 			gGetAPICallback(j);
-			Backbone.history.start();
 
 
 
@@ -68,16 +67,17 @@ client.onMessageArrived = function(message){
 };
 client.connect({onSuccess: function(){
 	//client.subscribe(mqtt.mqtttopic+"/res/#");
-	initGet();
+	Backbone.history.start();
 },
 userName : mqtt.mqttusername,
 password: mqtt.mqttpassword
 });
 var Router = Backbone.Router.extend({
 	routes: {
-		"programs/:id": "programs"
+		"channel/:id": "channel",
+		"*path": "defaultRoute"
 	},
-	programs: function(id){
+	channel: function(id){
 		console.log(id);
 		if(schedules){
 		var model = schedules.where({id:id})[0];
@@ -85,6 +85,9 @@ var Router = Backbone.Router.extend({
 		$("body").html("");
 		$("body").append(schedulesView.render().el);
 		}
+	},
+	defaultRoute: function(){
+		initGet();
 	}
 });
 var router = new Router();
@@ -95,9 +98,9 @@ var SchedulesView = Backbone.View.extend({
 	render:function(){
 		var e = this.model;
 		var that = this;
-		this.$el.append($("<b>").text(e.get("name")).attr("id",e.get("id"))
+		this.$el.append($("<b>").text(e.get("name")).attr("id",e.get("id")).addClass("channel-name")
 				.click(function(ev){
-					router.navigate("programs/"+e.get("id"),true);
+					router.navigate("channel/"+e.get("id"),true);
 					ev.preventDefault();
 				}));
 		var template = _.template($("#ch-template").html());
@@ -110,7 +113,7 @@ var SchedulesView = Backbone.View.extend({
 });function initGet(){
 getApi({method:"get",path:"schedule.json"},function(json){
 	schedules = new Schedules(json);
-	schedules_tmp = new Schedules(json);
+	var schedules_tmp = new Schedules(json);
 	schedules_tmp.each(function(e,i){
 		console.log(e.get("programs"),i);
 		e.set({programs: e.get("programs").slice(0,10)});
@@ -125,6 +128,7 @@ function getApi(req,callback){
 	}
 	gGetAPICallback = true;
 	gGetAPICallback = callback;
+	$("body").html("");
 	var mess = new Paho.MQTT.Message(JSON.stringify(req));
 	var sessionid = Math.floor(Math.random*1000000);
 	mess.destinationName = mqtt.mqtttopic+"/req/"+sessionid;
@@ -140,6 +144,10 @@ function getApi(req,callback){
 	width: 100%;
 	height: 100%;
 	font-size:100px;
+}
+.channel-name{
+	color:#00f;
+	text-decoration: underline;
 }
 </style>
 <body>
