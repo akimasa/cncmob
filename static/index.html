@@ -88,9 +88,6 @@ var router = new Router();
 var Schedules = Backbone.Collection.extend({
 });
 var schedules;
-function initGet(){
-getApi({method:"get",path:"schedule.json"},function(json){
-schedules = new Schedules(json);
 var SchedulesView = Backbone.View.extend({
 	render:function(){
 		var e = this.model;
@@ -110,12 +107,14 @@ var SchedulesView = Backbone.View.extend({
 		});
 		return this;
 	}
+});function initGet(){
+getApi({method:"get",path:"schedule.json"},function(json){
+	schedules = new Schedules(json);
+	schedules.each(function(e,i){
+		console.log(e.get("programs"),i);
+		var schedulesView = new SchedulesView({model:e});
+		$("body").append(schedulesView.render().el);
 });
-		schedules.each(function(e,i){
-			console.log(e.get("programs"),i);
-			var schedulesView = new SchedulesView({model:e});
-			$("body").append(schedulesView.render().el);
-		});
 });
 }
 function getApi(req,callback){
