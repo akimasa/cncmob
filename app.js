@@ -60,7 +60,7 @@ mqttc.on("message",function (topic, message){
 			var opts = {
 				host: "localhost",
 				port: 10772,
-				path: "/api/"+json.path,
+				path: "/api/"+json.path+".json",
 				auth: "akari:bakuhatsu",
 				method:json.method
 			};

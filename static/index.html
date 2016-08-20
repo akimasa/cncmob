@@ -19,6 +19,35 @@
 	</div>
 </div>
 </script>
+<script type="text/html" id="program-template">
+<div>
+	<div class="time">
+	<%= (new Date(start)).toLocaleDateString() %>
+	<%= (new Date(start)).toLocaleTimeString() %>
+	〜
+	<%= (new Date(end)).toLocaleTimeString() %>
+	</div>
+	<div>
+	<span class="category"><%= category %></span>
+	/
+	<span class="ch-type"><%= channel.type %></span>
+	:
+	<span class="ch-name"><%= channel.name %></span>
+	</div>
+	<div class="id">
+	<%= id %>
+	</div>
+	<div class="title">
+	<%= title %>
+	</div>
+	<div class="detail">
+	<%= detail %>
+	</div>
+	<div class="fullTitle">
+	<%= fullTitle %>
+	</div>
+</div>
+</script>
 <script>
 var client = new Paho.MQTT.Client(mqtt.wshost,mqtt.wsport,"clientId");
 var gMessage = new Uint8Array(0);
@@ -75,6 +104,7 @@ password: mqtt.mqttpassword
 var Router = Backbone.Router.extend({
 	routes: {
 		"channel/:id": "channel",
+		"program/:id": "program",
 		"*path": "defaultRoute"
 	},
 	channel: function(id){
@@ -85,6 +115,14 @@ var Router = Backbone.Router.extend({
 		$("body").html("");
 		$("body").append(schedulesView.render().el);
 		}
+	},
+	program: function(id){
+		getApi({method:"get", path:"program/"+id},function(j){
+			console.log(j)
+			var view = new ProgramView({model:j});
+			$("body").html("");
+			$("body").append(view.render().el);
+			});
 	},
 	defaultRoute: function(){
 		initGet();
@@ -111,11 +149,23 @@ var SchedulesView = Backbone.View.extend({
 				that.$el.append($("<div>").text((new Date(e2.start)).toLocaleDateString()).addClass("date"));
 				lastStart = e2.start;
 			}
-			that.$el.append(template(e2));
+			that.$el.append($(template(e2)).click(function(ev){
+					router.navigate("program/"+e2.id,true);
+					ev.preventDefault();
+			}));
 		});
 		return this;
 	}
-});function initGet(){
+});
+var ProgramView = Backbone.View.extend({
+	render:function(){
+		var e = this.model;
+		var template = _.template($("#program-template").html());
+		this.$el.append(template(e));
+		return this;
+	}
+})
+function initGet(){
 	var cb = function(json){
 		$("body").html("");
 		sessionStorage.schedules = JSON.stringify(json);
@@ -133,7 +183,7 @@ var SchedulesView = Backbone.View.extend({
 		cb(json);
 		return;
 	}
-getApi({method:"get",path:"schedule.json"},cb);
+getApi({method:"get",path:"schedule"},cb);
 }
 function getApi(req,callback){
 	if(gGetAPIInuse){
