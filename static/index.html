@@ -3,9 +3,9 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/backbone.js/1.3.3/backbone-min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.2/mqttws31.min.js"></script>
-<script src="settings.js"></script>
 <script src="encoding-indexes.js"></script>
 <script src="encoding.js"></script>
+<script src="jquery.qrcode.min.js"></script>
 <script type="text/html" id="ch-template">
 <div>
 	<%= (new Date(start)).toLocaleTimeString() %>
@@ -48,12 +48,143 @@
 	</div>
 </div>
 </script>
+<script type="text/html" id="setting-template">
+wshost: <input type="text" name="wshost" value="<%= mqtt.wshost %>">
+wsport: <input type="text" name="wsport" value="<%= mqtt.wsport %>">
+mqtttopic: <input type="text" name="mqtttopic" value="<%= mqtt.mqtttopic %>">
+mqttusername: <input type="text" name="mqttusername" value="<%= mqtt.mqttusername %>">
+mqttpassword: <input type="text" name="mqttpassword" value="<%= mqtt.mqttpassword %>">
+<input type="submit">
+<input type="button" id="cancel" value="cancel">
+</script>
 <script>
-var client = new Paho.MQTT.Client(mqtt.wshost,mqtt.wsport,"clientId");
+var Schedules = Backbone.Collection.extend({
+});
+var schedules;
+var SchedulesView = Backbone.View.extend({
+	render:function(){
+		var e = this.model;
+		var that = this;
+		this.$el.append($("<b>").text(e.get("name")).attr("id",e.get("id")).addClass("channel-name")
+				.click(function(ev){
+					router.navigate("channel/"+e.get("id"),true);
+					ev.preventDefault();
+				}));
+		var template = _.template($("#ch-template").html());
+		var lastStart = 0;
+		_.each(e.get("programs"),function(e2,i){
+			if(lastStart == 0 || ((new Date(lastStart)).getDate() != (new Date(e2.start)).getDate())){
+				console.log(e2.start);
+				that.$el.append($("<div>").text((new Date(e2.start)).toLocaleDateString()).addClass("date"));
+				lastStart = e2.start;
+			}
+			that.$el.append($(template(e2)).click(function(ev){
+					router.navigate("program/"+e2.id,true);
+					ev.preventDefault();
+			}));
+		});
+		return this;
+	}
+});
+var ProgramView = Backbone.View.extend({
+	render:function(){
+		var e = this.model;
+		var template = _.template($("#program-template").html());
+		this.$el.append(template(e));
+		return this;
+	}
+})
 var gMessage = new Uint8Array(0);
 var gGetAPICallback;
 var gGetAPIInuse = false;
 
+var Router = Backbone.Router.extend({
+	routes: {
+		"channel/:id": "channel",
+		"program/:id": "program",
+		"setting": "setting",
+		"setting/:id": "setting",
+		"*path": "defaultRoute"
+	},
+	channel: function(id){
+		console.log(id);
+		if(schedules){
+		var model = schedules.where({id:id})[0];
+		var schedulesView = new SchedulesView({model:model});
+		$("body").html("");
+		$("body").append(schedulesView.render().el);
+		}
+	},
+	program: function(id){
+		getApi({method:"get", path:"program/"+id},function(j){
+			console.log(j)
+			var view = new ProgramView({model:j});
+			$("body").html("");
+			$("body").append(view.render().el);
+			});
+	},
+	setting: function(str){
+		console.log(str);
+		if(str){
+			localStorage.setting = str;
+			init(initGet);
+		} else {
+			$("body").html("");
+			$("#nowloading").hide();			
+			if(!mqtt){
+				mqtt = {
+					"wshost": "EDITHERE",
+					"wsport": 80,
+					"mqttusername": "akimasa@github",
+					"mqttpassword": "",
+					"mqtttopic": "akimasa@github"
+				};
+				
+			}
+			var template = _.template($("#setting-template").html());
+			var $el = $("<form>").html(template(mqtt
+						)).addClass("setting")
+				.on("submit",function(e){
+					console.log(this.wshost.value);
+					var obj = {
+						wshost: this.wshost.value,
+						wsport: Number(this.wsport.value),
+						mqttusername: this.mqttusername.value,
+						mqttpassword: this.mqttpassword.value,
+						mqtttopic: this.mqtttopic.value
+					};
+					var j = JSON.stringify(obj);
+					console.log(j)
+					var hrefparts = location.href.split("/");
+					var url = hrefparts[0]+"//"+hrefparts[2]+"/#setting/"+j;
+					if(!$("#qr")[0]){
+						$("body").append($("<a>").attr("id","qr"));
+					}
+					$("#qr").qrcode(url).attr("href",url);
+					localStorage.setting = j;
+					e.preventDefault();
+				});
+			$("body").append($el);
+		}
+
+	},
+	defaultRoute: function(){
+		initGet();
+	}
+});
+var router = new Router();
+var mqtt,client;
+if(localStorage.setting){
+	init();
+} else {
+	$(function(){
+		Backbone.history.start();
+		//router.navigate("setting");
+	});
+}
+function init(cb){
+ mqtt = JSON.parse(localStorage.setting);
+	client = new Paho.MQTT.Client(mqtt.wshost,mqtt.wsport,"clientId"+Math.floor(Math.random()*10000));
 client.onMessageArrived = function(message){
     var dataview = new DataView(new ArrayBuffer(message.payloadBytes.byteLength));
     for(var i=0;i<message.payloadBytes.byteLength;i++){
@@ -94,77 +225,19 @@ client.onMessageArrived = function(message){
 		console.log(e);
 	}
 };
+console.log("go connect",mqtt);
 client.connect({onSuccess: function(){
 	//client.subscribe(mqtt.mqtttopic+"/res/#");
-	Backbone.history.start();
+	if(cb){
+		cb();
+	} else {
+		Backbone.history.start();
+	}
 },
 userName : mqtt.mqttusername,
 password: mqtt.mqttpassword
 });
-var Router = Backbone.Router.extend({
-	routes: {
-		"channel/:id": "channel",
-		"program/:id": "program",
-		"*path": "defaultRoute"
-	},
-	channel: function(id){
-		console.log(id);
-		if(schedules){
-		var model = schedules.where({id:id})[0];
-		var schedulesView = new SchedulesView({model:model});
-		$("body").html("");
-		$("body").append(schedulesView.render().el);
-		}
-	},
-	program: function(id){
-		getApi({method:"get", path:"program/"+id},function(j){
-			console.log(j)
-			var view = new ProgramView({model:j});
-			$("body").html("");
-			$("body").append(view.render().el);
-			});
-	},
-	defaultRoute: function(){
-		initGet();
-	}
-});
-var router = new Router();
-var Schedules = Backbone.Collection.extend({
-});
-var schedules;
-var SchedulesView = Backbone.View.extend({
-	render:function(){
-		var e = this.model;
-		var that = this;
-		this.$el.append($("<b>").text(e.get("name")).attr("id",e.get("id")).addClass("channel-name")
-				.click(function(ev){
-					router.navigate("channel/"+e.get("id"),true);
-					ev.preventDefault();
-				}));
-		var template = _.template($("#ch-template").html());
-		var lastStart = 0;
-		_.each(e.get("programs"),function(e2,i){
-			if(lastStart == 0 || ((new Date(lastStart)).getDate() != (new Date(e2.start)).getDate())){
-				console.log(e2.start);
-				that.$el.append($("<div>").text((new Date(e2.start)).toLocaleDateString()).addClass("date"));
-				lastStart = e2.start;
-			}
-			that.$el.append($(template(e2)).click(function(ev){
-					router.navigate("program/"+e2.id,true);
-					ev.preventDefault();
-			}));
-		});
-		return this;
-	}
-});
-var ProgramView = Backbone.View.extend({
-	render:function(){
-		var e = this.model;
-		var template = _.template($("#program-template").html());
-		this.$el.append(template(e));
-		return this;
-	}
-})
+}
 function initGet(){
 	var cb = function(json){
 		$("body").html("");
@@ -213,6 +286,9 @@ function getApi(req,callback){
 }
 .date{
 	border-bottom: solid 10px #aaa;
+}
+.setting input{
+	display: block;
 }
 </style>
 <body>
