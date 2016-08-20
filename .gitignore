@@ -1,3 +1,4 @@
 node_modules/
 settings.json
 static/settings.js
+docs/settings.js

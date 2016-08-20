@@ -2,7 +2,7 @@ http = require("http");
 express = require("express");
 app = express();
 
-app.use('/', express.static('static'));
+app.use('/', express.static('docs'));
 var fs = require("fs");
 var settings = JSON.parse(fs.readFileSync("settings.json",'utf8'));
 var mqtt = require("mqtt");
