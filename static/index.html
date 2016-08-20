@@ -127,7 +127,7 @@ var Router = Backbone.Router.extend({
 		console.log(str);
 		if(str){
 			localStorage.setting = str;
-			init(initGet);
+			init(function(){router.navigate("",true)});
 		} else {
 			$("body").html("");
 			$("#nowloading").hide();			
