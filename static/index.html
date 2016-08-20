@@ -103,6 +103,7 @@ var Router = Backbone.Router.extend({
 		"channel/:id": "channel",
 		"program/:id": "program",
 		"setting": "setting",
+		"clearsetting": "clearsetting",
 		"setting/:id": "setting",
 		"*path": "defaultRoute"
 	},
@@ -126,7 +127,7 @@ var Router = Backbone.Router.extend({
 	setting: function(str){
 		console.log(str);
 		if(str){
-			localStorage.setting = str;
+			localStorage.setting = atob(str);
 			init(function(){router.navigate("",true)});
 		} else {
 			$("body").html("");
@@ -155,6 +156,7 @@ var Router = Backbone.Router.extend({
 					};
 					var j = JSON.stringify(obj);
 					console.log(j)
+					j = btoa(j);
 					var hrefparts = location.href.split("/");
 					var url = hrefparts[0]+"//"+hrefparts[2]+"/#setting/"+j;
 					if(!$("#qr")[0]){
@@ -167,6 +169,10 @@ var Router = Backbone.Router.extend({
 			$("body").append($el);
 		}
 
+	},
+	clearsetting: function(){
+		sessionStorage.schedules = ""; localStorage.setting = "";
+		alert("settings cleared");
 	},
 	defaultRoute: function(){
 		initGet();
