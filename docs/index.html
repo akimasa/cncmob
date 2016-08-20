@@ -178,7 +178,7 @@ var Router = Backbone.Router.extend({
 	},
 	defaultRoute: function(){
 		if (!localStorage.setting) {
-			if(!Backbone.history.started)
+			if(!Backbone.History.started)
 			Backbone.history.start();
 			router.navigate("setting",true);
 		} else {
