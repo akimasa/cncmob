@@ -54,6 +54,7 @@ wsport: <input type="text" name="wsport" value="<%= mqtt.wsport %>">
 mqtttopic: <input type="text" name="mqtttopic" value="<%= mqtt.mqtttopic %>">
 mqttusername: <input type="text" name="mqttusername" value="<%= mqtt.mqttusername %>">
 mqttpassword: <input type="text" name="mqttpassword" value="<%= mqtt.mqttpassword %>">
+usessl: <input type="text" name="usessl" value="<%= mqtt.usessl %>">
 <input type="submit" value="Save and Show QR code">
 <input type="button" id="close" value="close">
 </script>
@@ -135,10 +136,11 @@ var Router = Backbone.Router.extend({
 			if(!mqtt){
 				mqtt = {
 					"wshost": "EDITHERE",
-					"wsport": 80,
+					"wsport": 443,
 					"mqttusername": "akimasa@github",
 					"mqttpassword": "",
-					"mqtttopic": "akimasa@github"
+					"mqtttopic": "akimasa@github",
+					"usessl": "true"
 				};
 				
 			}
@@ -152,7 +154,8 @@ var Router = Backbone.Router.extend({
 						wsport: Number(this.wsport.value),
 						mqttusername: this.mqttusername.value,
 						mqttpassword: this.mqttpassword.value,
-						mqtttopic: this.mqtttopic.value
+						mqtttopic: this.mqtttopic.value,
+						usessl: Boolean(this.usessl.value)
 					};
 					var j = JSON.stringify(obj);
 					localStorage.setting = j;
@@ -261,7 +264,8 @@ onFailure: function(){
 		router.navigate("setting",true);
 },
 userName : mqtt.mqttusername,
-password: mqtt.mqttpassword
+password: mqtt.mqttpassword,
+useSSL: mqtt.usessl
 });
 }
 function initGet(){
