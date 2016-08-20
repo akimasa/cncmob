@@ -219,6 +219,7 @@ client.onMessageArrived = function(message){
 		var seq = dataview.getInt32(0,false);
 		console.log(seq);
 		if(seq == -1){
+			console.timeEnd("recv data");
 			console.log(gMessage);
 			var td = new TextDecoder("utf-8");
 			var jstxt = td.decode(gMessage);
@@ -231,6 +232,7 @@ client.onMessageArrived = function(message){
 
 
 		} else if(seq === 0){
+			console.time("recv data");
 			gMessage = new Uint8Array((seq+1) * (PKT_SIZE-4));
 			gMessage.set((new Uint8Array(dataview.buffer)).subarray(4));
 			console.log(gMessage,(new Uint8Array(dataview.buffer)).subarray(4));
