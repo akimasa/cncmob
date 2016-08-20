@@ -1,3 +1,4 @@
+const PKT_SIZE = 10240;
 http = require("http");
 express = require("express");
 app = express();
@@ -44,11 +45,11 @@ mqttc.on("message",function (topic, message){
 				hRes.on("end", function(){
 					console.log("end");
 					var buffer = Buffer.concat(buf);
-					var chunk = Buffer.alloc(10240);
+					var chunk = Buffer.alloc(PKT_SIZE);
 					var j=0;
-					for(var i=0;i<buffer.length;i+=10240-4,j++){
+					for(var i=0;i<buffer.length;i+=PKT_SIZE-4,j++){
 						chunk.fill(0);
-						buffer.copy(chunk,4,i,(i+10240-4 > buffer.length)?buffer.length:i+10240-4);
+						buffer.copy(chunk,4,i,(i+PKT_SIZE-4 > buffer.length)?buffer.length:i+PKT_SIZE-4);
 						chunk.writeInt32BE(j,0);
 						mqttc.publish(settings.mqtttopic+"/res/"+session,chunk)
 					}

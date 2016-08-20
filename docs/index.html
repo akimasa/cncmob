@@ -59,6 +59,7 @@ usessl: <input type="text" name="usessl" value="<%= mqtt.usessl %>">
 <input type="button" id="close" value="close">
 </script>
 <script>
+const PKT_SIZE=10240;
 var Schedules = Backbone.Collection.extend({
 });
 var schedules;
@@ -230,17 +231,17 @@ client.onMessageArrived = function(message){
 
 
 		} else if(seq === 0){
-			gMessage = new Uint8Array((seq+1) * (10240-4));
+			gMessage = new Uint8Array((seq+1) * (PKT_SIZE-4));
 			gMessage.set((new Uint8Array(dataview.buffer)).subarray(4));
 			console.log(gMessage,(new Uint8Array(dataview.buffer)).subarray(4));
-		} else if((seq+1) * (10240-4) > gMessage.byteLength){
-			var tmp = new Uint8Array((seq+1) * (10240-4));
+		} else if((seq+1) * (PKT_SIZE-4) > gMessage.byteLength){
+			var tmp = new Uint8Array((seq+1) * (PKT_SIZE-4));
 			tmp.set(gMessage,0);
-			tmp.set((new Uint8Array(dataview.buffer)).subarray(4),seq * (10240-4));
+			tmp.set((new Uint8Array(dataview.buffer)).subarray(4),seq * (PKT_SIZE-4));
 			gMessage = tmp;
 		} else {
 			console.log("else",seq);
-			gMessage.set((new Uint8Array(dataview.buffer)).subarray(4),seq * (10240-4));
+			gMessage.set((new Uint8Array(dataview.buffer)).subarray(4),seq * (PKT_SIZE-4));
 		}
 		
 	} catch (e){
