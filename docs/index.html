@@ -54,8 +54,8 @@ wsport: <input type="text" name="wsport" value="<%= mqtt.wsport %>">
 mqtttopic: <input type="text" name="mqtttopic" value="<%= mqtt.mqtttopic %>">
 mqttusername: <input type="text" name="mqttusername" value="<%= mqtt.mqttusername %>">
 mqttpassword: <input type="text" name="mqttpassword" value="<%= mqtt.mqttpassword %>">
-<input type="submit">
-<input type="button" id="cancel" value="cancel">
+<input type="submit" value="Save and Show QR code">
+<input type="button" id="close" value="close">
 </script>
 <script>
 var Schedules = Backbone.Collection.extend({
@@ -155,18 +155,20 @@ var Router = Backbone.Router.extend({
 						mqtttopic: this.mqtttopic.value
 					};
 					var j = JSON.stringify(obj);
-					console.log(j)
+					localStorage.setting = j;
 					j = btoa(j);
 					var hrefparts = location.href.split("/");
 					var url = hrefparts[0]+"//"+hrefparts[2]+"/#setting/"+j;
 					if(!$("#qr")[0]){
 						$("body").append($("<a>").attr("id","qr"));
 					}
-					$("#qr").qrcode(url).attr("href",url);
-					localStorage.setting = j;
+					$("#qr").html("").qrcode(url).attr("href",url);
 					e.preventDefault();
 				});
 			$("body").append($el);
+			$("#close").click(function(){
+				router.navigate("",true);
+			});
 		}
 
 	},
@@ -175,21 +177,32 @@ var Router = Backbone.Router.extend({
 		alert("settings cleared");
 	},
 	defaultRoute: function(){
-		initGet();
+		if (!localStorage.setting) {
+			if(!Backbone.history.started)
+			Backbone.history.start();
+			router.navigate("setting",true);
+		} else {
+			init(function(){initGet()});
+		}
 	}
 });
 var router = new Router();
 var mqtt,client;
-if(localStorage.setting){
-	init();
-} else {
-	$(function(){
-		Backbone.history.start();
-		//router.navigate("setting");
-	});
-}
+$(function(){
+	if(!Backbone.History.started)
+	Backbone.history.start();
+});
 function init(cb){
+	try {
  mqtt = JSON.parse(localStorage.setting);
+	} catch(e) {
+		console.log(e,localStorage.setting);
+		localStorage.setting = "";
+		if(!Backbone.History.started)
+		Backbone.history.start();
+		router.navigate("setting",true);
+		return;
+	}
 	client = new Paho.MQTT.Client(mqtt.wshost,mqtt.wsport,"clientId"+Math.floor(Math.random()*10000));
 client.onMessageArrived = function(message){
     var dataview = new DataView(new ArrayBuffer(message.payloadBytes.byteLength));
@@ -237,8 +250,15 @@ client.connect({onSuccess: function(){
 	if(cb){
 		cb();
 	} else {
+		if(!Backbone.History.started)
 		Backbone.history.start();
 	}
+},
+onFailure: function(){
+	console.log("onFailure:");
+		if(!Backbone.History.started)
+		Backbone.history.start();
+		router.navigate("setting",true);
 },
 userName : mqtt.mqttusername,
 password: mqtt.mqttpassword
@@ -273,8 +293,14 @@ function getApi(req,callback){
 	var mess = new Paho.MQTT.Message(JSON.stringify(req));
 	var sessionid = Math.floor(Math.random()*1000000);
 	mess.destinationName = mqtt.mqtttopic+"/req/"+sessionid;
+	try{
 	client.subscribe(mqtt.mqtttopic+"/res/"+sessionid);
 	client.send(mess);
+	} catch(e) {
+		console.log(e);
+		gGetAPIInuse = false;
+		gGetAPICallback = null;
+	}
 }
 </script>
 <style>
