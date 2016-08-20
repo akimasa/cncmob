@@ -192,7 +192,7 @@ function getApi(req,callback){
 	gGetAPICallback = true;
 	gGetAPICallback = callback;
 	var mess = new Paho.MQTT.Message(JSON.stringify(req));
-	var sessionid = Math.floor(Math.random*1000000);
+	var sessionid = Math.floor(Math.random()*1000000);
 	mess.destinationName = mqtt.mqtttopic+"/req/"+sessionid;
 	client.subscribe(mqtt.mqtttopic+"/res/"+sessionid);
 	client.send(mess);
