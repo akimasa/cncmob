@@ -156,7 +156,7 @@ var Router = Backbone.Router.extend({
 						mqttusername: this.mqttusername.value,
 						mqttpassword: this.mqttpassword.value,
 						mqtttopic: this.mqtttopic.value,
-						usessl: Boolean(this.usessl.value)
+						usessl: (this.usessl.value === "true")?true:false
 					};
 					var j = JSON.stringify(obj);
 					localStorage.setting = j;
