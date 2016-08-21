@@ -58,6 +58,9 @@ usessl: <input type="text" name="usessl" value="<%= mqtt.usessl %>">
 <input type="submit" value="Save and Show QR code">
 <input type="button" id="close" value="close">
 </script>
+<script type="text/html" id="header-template">
+<input type="button" id="reload" value="reload">
+</script>
 <script>
 const PKT_SIZE=10240;
 var Schedules = Backbone.Collection.extend({
@@ -114,8 +117,20 @@ var Router = Backbone.Router.extend({
 		if(schedules){
 		var model = schedules.where({id:id})[0];
 		var schedulesView = new SchedulesView({model:model});
-		$("body").html("");
+		$("body").html($("#header-template").html());
 		$("body").append(schedulesView.render().el);
+		} else {
+			init(function() {
+				initGet(function(json){
+					sessionStorage.schedules = JSON.stringify(json);
+					schedules = new Schedules(json);
+						
+					var model = schedules.where({id:id})[0];
+					var schedulesView = new SchedulesView({model:model});
+					$("body").html($("#header-template").html());
+					$("body").append(schedulesView.render().el);
+				});	
+			});
 		}
 	},
 	program: function(id){
@@ -271,19 +286,21 @@ password: mqtt.mqttpassword,
 useSSL: mqtt.usessl
 });
 }
-function initGet(){
-	var cb = function(json){
-		$("body").html("");
-		sessionStorage.schedules = JSON.stringify(json);
-		schedules = new Schedules(json);
-		var schedules_tmp = new Schedules(json);
-		schedules_tmp.each(function(e,i){
-			console.log(e.get("programs"),i);
-			e.set({programs: e.get("programs").slice(0,10)});
-			var schedulesView = new SchedulesView({model:e});
-			$("body").append(schedulesView.render().el);
-		});
-	};
+function initGet(cb){
+	if(!cb){
+		var cb = function(json){
+			$("body").html($("#header-template").html());
+			sessionStorage.schedules = JSON.stringify(json);
+			schedules = new Schedules(json);
+			var schedules_tmp = new Schedules(json);
+			schedules_tmp.each(function(e,i){
+				console.log(e.get("programs"),i);
+				e.set({programs: e.get("programs").slice(0,10)});
+				var schedulesView = new SchedulesView({model:e});
+				$("body").append(schedulesView.render().el);
+			});
+		};
+	}
 	if(sessionStorage.schedules){
 		var json = JSON.parse(sessionStorage.schedules);
 		cb(json);
